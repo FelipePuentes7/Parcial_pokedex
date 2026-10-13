@@ -1,0 +1,424 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar class="detail-toolbar" [ngClass]="pokemon() ? getTypeClass(pokemon()?.types?.[0]) : 'toolbar-default'">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" text="Volver" icon="arrow-back-outline"></ion-back-button>
+    </ion-buttons>
+
+    @if (pokemon()) {
+      <ion-title>{{ pokemon()?.name }}</ion-title>
+      <div slot="end" class="toolbar-actions">
+        <span class="pokedex-tag">{{ formatPokedexId(pokemon()?.pokedexId) }}</span>
+        <button class="top-action-btn edit-btn" (click)="openEditModal()" title="Editar estadísticas">
+          <ion-icon name="create-outline"></ion-icon>
+        </button>
+        <button class="top-action-btn delete-btn" (click)="confirmDelete()" title="Eliminar Pokémon">
+          <ion-icon name="trash-outline"></ion-icon>
+        </button>
+      </div>
+    } @else {
+      <ion-title>Detalle Pokémon</ion-title>
+    }
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="detail-content">
+  <!-- Loading Spinner -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Cargando información y estadísticas de combate...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (hasError() && !isLoading()) {
+    <div class="error-container">
+      <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
+      <h3>No se pudo cargar el Pokémon</h3>
+      <p>{{ errorMessage() }}</p>
+      <div class="action-buttons">
+        <ion-button (click)="retry()" fill="solid" color="primary" shape="round">
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          Reintentar
+        </ion-button>
+        <ion-button (click)="goBack()" fill="outline" color="medium" shape="round">
+          Volver a la lista
+        </ion-button>
+      </div>
+    </div>
+  }
+
+  <!-- Main Pokemon Detail Body -->
+  @if (pokemon() && !isLoading()) {
+    <div class="detail-container">
+      
+      <!-- Top Hero Card with Sprite -->
+      <div class="hero-card" [ngClass]="getTypeClass(pokemon()?.types?.[0])">
+        <div class="background-decorations">
+          <div class="watermark-number">{{ formatPokedexId(pokemon()?.pokedexId) }}</div>
+        </div>
+
+        <div class="sprite-wrapper">
+          <div class="sprite-glow"></div>
+          <img
+            [src]="pokemon()?.sprite"
+            [alt]="pokemon()?.name"
+            class="detail-sprite"
+            (error)="onImageError($event, pokemon()?.pokedexId)"
+          />
+        </div>
+
+        <div class="hero-info">
+          <h1 class="pokemon-title">{{ pokemon()?.name }}</h1>
+          <div class="types-container">
+            @for (type of pokemon()?.types; track type) {
+              <span class="type-pill" [ngClass]="getTypeClass(type)">
+                {{ type }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats & Characteristics Grid (Height & Weight) -->
+      <div class="stats-section">
+        <h2 class="section-title">Características Físicas</h2>
+        <ion-grid class="measurements-grid">
+          <ion-row>
+            <ion-col size="6">
+              <div class="stat-box">
+                <div class="stat-icon-wrapper height-icon">
+                  <ion-icon name="resize-outline"></ion-icon>
+                </div>
+                <div class="stat-data">
+                  <span class="stat-value">{{ pokemon()?.height }} m</span>
+                  <span class="stat-label">Altura</span>
+                </div>
+              </div>
+            </ion-col>
+            <ion-col size="6">
+              <div class="stat-box">
+                <div class="stat-icon-wrapper weight-icon">
+                  <ion-icon name="barbell-outline"></ion-icon>
+                </div>
+                <div class="stat-data">
+                  <span class="stat-value">{{ pokemon()?.weight }} kg</span>
+                  <span class="stat-label">Peso</span>
+                </div>
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </div>
+
+      <!-- =========================================================
+           REQUERIMIENTO 1: LAS 6 ESTADÍSTICAS OFICIALES DE COMBATE
+           ========================================================= -->
+      <div class="combat-stats-section">
+        <div class="section-header-row">
+          <div class="title-with-icon">
+            <ion-icon name="stats-chart-outline" class="header-icon"></ion-icon>
+            <h2 class="section-title">Estadísticas Base de Combate</h2>
+          </div>
+          <div class="bst-badge">
+            <ion-icon name="trophy-outline"></ion-icon>
+            <span>Total: <strong>{{ getTotalStats() }}</strong></span>
+          </div>
+        </div>
+
+        <div class="gauges-list">
+          <!-- 1. HP -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-hp"></span> Puntos de Salud (HP)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.hp || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-hp" [style.width.%]="getStatPercent(pokemon()?.hp)"></div>
+            </div>
+          </div>
+
+          <!-- 2. Ataque -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-atk"></span> Ataque (Attack)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.attack || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-atk" [style.width.%]="getStatPercent(pokemon()?.attack)"></div>
+            </div>
+          </div>
+
+          <!-- 3. Defensa -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-def"></span> Defensa (Defense)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.defense || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-def" [style.width.%]="getStatPercent(pokemon()?.defense)"></div>
+            </div>
+          </div>
+
+          <!-- 4. Ataque Especial -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-spa"></span> Ataque Especial (Sp. Atk)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.special_attack || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-spa" [style.width.%]="getStatPercent(pokemon()?.special_attack)"></div>
+            </div>
+          </div>
+
+          <!-- 5. Defensa Especial -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-spd"></span> Defensa Especial (Sp. Def)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.special_defense || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-spd" [style.width.%]="getStatPercent(pokemon()?.special_defense)"></div>
+            </div>
+          </div>
+
+          <!-- 6. Velocidad -->
+          <div class="gauge-item">
+            <div class="gauge-meta">
+              <span class="gauge-name">
+                <span class="stat-dot dot-spe"></span> Velocidad (Speed)
+              </span>
+              <span class="gauge-values"><strong>{{ pokemon()?.speed || 0 }}</strong> <small>/ 255</small></span>
+            </div>
+            <div class="gauge-bar-track">
+              <div class="gauge-bar-fill bar-spe" [style.width.%]="getStatPercent(pokemon()?.speed)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abilities Section -->
+      <div class="abilities-section">
+        <h2 class="section-title">Habilidades Oficiales</h2>
+        <div class="abilities-wrapper">
+          @for (ability of pokemon()?.abilities; track ability) {
+            <div class="ability-card">
+              <ion-icon name="flash-outline" class="ability-icon"></ion-icon>
+              <span class="ability-name">{{ ability }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Bottom Action Buttons (HU-06 & HU-07) -->
+      <div class="detail-actions-panel">
+        <button class="action-btn edit-action-btn" (click)="openEditModal()">
+          <ion-icon name="create-outline"></ion-icon>
+          <span>Editar Estadísticas y Atributos</span>
+        </button>
+        <button class="action-btn delete-action-btn" (click)="confirmDelete()">
+          <ion-icon name="trash-outline"></ion-icon>
+          <span>Eliminar de Pokédex</span>
+        </button>
+      </div>
+
+      <!-- Technical Meta Section -->
+      <div class="meta-section">
+        <div class="meta-item">
+          <span class="meta-label">Pokédex Nacional:</span>
+          <span class="meta-val">#{{ pokemon()?.pokedexId }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">ID Local SQLite:</span>
+          <span class="meta-val">{{ pokemon()?.id }}</span>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- =========================================================
+       HU-06: MODAL DE EDICIÓN CON SLIDERS EN TIEMPO REAL
+       ========================================================= -->
+  <ion-modal [isOpen]="isEditModalOpen()" (didDismiss)="closeEditModal()" class="edit-pokemon-modal">
+    <ng-template>
+      <div class="edit-modal-wrapper">
+        <ion-header class="ion-no-border">
+          <ion-toolbar class="edit-modal-toolbar">
+            <div class="edit-title-box">
+              <ion-icon name="create-outline" class="edit-icon"></ion-icon>
+              <ion-title>Editar {{ pokemon()?.name }}</ion-title>
+            </div>
+            <ion-buttons slot="end">
+              <ion-button (click)="closeEditModal()" fill="clear" color="medium">
+                <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="edit-modal-content">
+          <div class="edit-form-body">
+            
+            <!-- Basic Data Fields -->
+            <div class="form-group-card">
+              <h3 class="group-title">Datos Principales</h3>
+              <div class="input-field">
+                <label>Nombre del Pokémon</label>
+                <input type="text" [(ngModel)]="editForm.name" class="styled-input" placeholder="Nombre" />
+              </div>
+              <div class="input-row-2">
+                <div class="input-field">
+                  <label>Altura (metros)</label>
+                  <input type="number" step="0.1" min="0.1" [(ngModel)]="editForm.height" class="styled-input" />
+                </div>
+                <div class="input-field">
+                  <label>Peso (kg)</label>
+                  <input type="number" step="0.1" min="0.1" [(ngModel)]="editForm.weight" class="styled-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 6 Base Combat Stats Sliders -->
+            <div class="form-group-card">
+              <div class="group-header-row">
+                <h3 class="group-title">Ajuste de Estadísticas de Combate</h3>
+                <span class="total-live-badge">Total: <strong>{{ getEditTotalStats() }}</strong></span>
+              </div>
+              <p class="group-subtitle">Mueve los deslizadores numéricos en tiempo real para calibrar las estadísticas (0 a 255):</p>
+
+              <!-- HP Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-hp"></span> Salud (HP)</span>
+                  <span class="stat-value-badge hp-badge">{{ editForm.hp }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.hp"
+                  class="custom-range range-hp">
+                </ion-range>
+              </div>
+
+              <!-- Attack Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-atk"></span> Ataque (Attack)</span>
+                  <span class="stat-value-badge atk-badge">{{ editForm.attack }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.attack"
+                  class="custom-range range-atk">
+                </ion-range>
+              </div>
+
+              <!-- Defense Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-def"></span> Defensa (Defense)</span>
+                  <span class="stat-value-badge def-badge">{{ editForm.defense }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.defense"
+                  class="custom-range range-def">
+                </ion-range>
+              </div>
+
+              <!-- Sp. Attack Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-spa"></span> Ataque Especial (Sp. Atk)</span>
+                  <span class="stat-value-badge spa-badge">{{ editForm.special_attack }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.special_attack"
+                  class="custom-range range-spa">
+                </ion-range>
+              </div>
+
+              <!-- Sp. Defense Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-spd"></span> Defensa Especial (Sp. Def)</span>
+                  <span class="stat-value-badge spd-badge">{{ editForm.special_defense }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.special_defense"
+                  class="custom-range range-spd">
+                </ion-range>
+              </div>
+
+              <!-- Speed Slider -->
+              <div class="stat-slider-item">
+                <div class="slider-header">
+                  <span class="stat-name"><span class="stat-dot dot-spe"></span> Velocidad (Speed)</span>
+                  <span class="stat-value-badge spe-badge">{{ editForm.speed }}</span>
+                </div>
+                <ion-range
+                  min="1"
+                  max="255"
+                  step="1"
+                  [(ngModel)]="editForm.speed"
+                  class="custom-range range-spe">
+                </ion-range>
+              </div>
+
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="modal-save-actions">
+              <ion-button
+                expand="block"
+                color="primary"
+                shape="round"
+                [disabled]="isSaving()"
+                (click)="savePokemonEdits()">
+                @if (isSaving()) {
+                  <ion-spinner name="crescent" slot="start"></ion-spinner>
+                  Guardando en SQLite...
+                } @else {
+                  <ion-icon name="save-outline" slot="start"></ion-icon>
+                  Guardar Cambios
+                }
+              </ion-button>
+              <ion-button
+                expand="block"
+                fill="outline"
+                color="medium"
+                shape="round"
+                (click)="closeEditModal()">
+                Cancelar
+              </ion-button>
+            </div>
+
+          </div>
+        </ion-content>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>

@@ -1,0 +1,728 @@
+.detail-toolbar {
+  --color: #ffffff;
+  transition: background 0.3s ease;
+
+  ion-title {
+    font-weight: 800;
+    text-transform: capitalize;
+    font-size: 1.25rem;
+    letter-spacing: 0.3px;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 10px;
+
+    .pokedex-tag {
+      font-weight: 900;
+      font-size: 0.92rem;
+      color: rgba(255, 255, 255, 0.95);
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .top-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.25);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &.delete-btn:hover {
+        background: #dc2626;
+        border-color: #ef4444;
+      }
+    }
+  }
+}
+
+.toolbar-default {
+  --background: #dc2626;
+}
+
+.detail-content {
+  --background: #f8fafc;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+
+  p {
+    color: #64748b;
+    font-weight: 500;
+  }
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 16px;
+  padding: 32px 20px;
+  background: #ffffff;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+
+  .error-icon {
+    font-size: 3.5rem;
+    color: #ef4444;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin: 0 0 24px 0;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+.detail-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   HERO CARD PRINCIPAL
+   ========================================================= */
+.hero-card {
+  position: relative;
+  border-radius: 24px;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  margin-bottom: 18px;
+
+  .background-decorations {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    pointer-events: none;
+
+    .watermark-number {
+      position: absolute;
+      right: 10px;
+      top: 0px;
+      font-size: 6.5rem;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.15);
+      user-select: none;
+      line-height: 1;
+    }
+  }
+
+  .sprite-wrapper {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+
+    .sprite-glow {
+      position: absolute;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      filter: blur(12px);
+    }
+
+    .detail-sprite {
+      width: 190px;
+      height: 190px;
+      object-fit: contain;
+      z-index: 2;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.25));
+    }
+  }
+
+  .hero-info {
+    text-align: center;
+    z-index: 1;
+    margin-top: 10px;
+
+    .pokemon-title {
+      font-size: 2rem;
+      font-weight: 800;
+      text-transform: capitalize;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .types-container {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .type-pill {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+  }
+}
+
+/* =========================================================
+   SECCIONES DE CARACTERÍSTICAS
+   ========================================================= */
+.stats-section,
+.combat-stats-section,
+.abilities-section,
+.meta-section {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.measurements-grid {
+  padding: 12px 0 0 0;
+
+  .stat-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .stat-icon-wrapper {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+
+      &.height-icon {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+
+      &.weight-icon {
+        background: #fef3c7;
+        color: #d97706;
+      }
+    }
+
+    .stat-data {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      .stat-label {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   REQUERIMIENTO 1: MEDIDORES DE LAS 6 ESTADÍSTICAS BASE
+   ========================================================= */
+.combat-stats-section {
+  .section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+
+    .title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .header-icon {
+        font-size: 1.3rem;
+        color: #dc2626;
+      }
+    }
+
+    .bst-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 5px 12px;
+      border-radius: 14px;
+      font-size: 0.85rem;
+      color: #334155;
+
+      ion-icon {
+        color: #f59e0b;
+        font-size: 1rem;
+      }
+
+      strong {
+        color: #0f172a;
+        font-weight: 800;
+      }
+    }
+  }
+
+  .gauges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    .gauge-item {
+      .gauge-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+
+        .gauge-name {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+
+            &.dot-hp  { background-color: #10b981; }
+            &.dot-atk { background-color: #ef4444; }
+            &.dot-def { background-color: #f59e0b; }
+            &.dot-spa { background-color: #8b5cf6; }
+            &.dot-spd { background-color: #06b6d4; }
+            &.dot-spe { background-color: #ec4899; }
+          }
+        }
+
+        .gauge-values {
+          font-size: 0.95rem;
+          color: #0f172a;
+
+          strong {
+            font-weight: 800;
+          }
+
+          small {
+            color: #94a3b8;
+            font-size: 0.75rem;
+          }
+        }
+      }
+
+      .gauge-bar-track {
+        height: 9px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+
+        .gauge-bar-fill {
+          height: 100%;
+          border-radius: 6px;
+          transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+          &.bar-hp  { background: linear-gradient(90deg, #34d399, #10b981); }
+          &.bar-atk { background: linear-gradient(90deg, #f87171, #ef4444); }
+          &.bar-def { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+          &.bar-spa { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+          &.bar-spd { background: linear-gradient(90deg, #38bdf8, #06b6d4); }
+          &.bar-spe { background: linear-gradient(90deg, #f472b6, #ec4899); }
+        }
+      }
+    }
+  }
+}
+
+/* =========================================================
+   HABILIDADES
+   ========================================================= */
+.abilities-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+
+  .ability-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f5f9;
+    padding: 10px 16px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+
+    .ability-icon {
+      color: #f59e0b;
+      font-size: 1.1rem;
+    }
+
+    .ability-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+      text-transform: capitalize;
+    }
+  }
+}
+
+/* =========================================================
+   PANEL DE ACCIONES (HU-06 & HU-07)
+   ========================================================= */
+.detail-actions-panel {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+
+  .action-btn {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ion-icon {
+      font-size: 1.2rem;
+    }
+
+    &.edit-action-btn {
+      background: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(30, 41, 59, 0.25);
+
+      &:hover {
+        background: #0f172a;
+        transform: translateY(-2px);
+      }
+    }
+
+    &.delete-action-btn {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+
+      &:hover {
+        background: #dc2626;
+        color: #ffffff;
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+.meta-section {
+  display: flex;
+  justify-content: space-around;
+  padding: 14px 20px;
+  background: #f8fafc;
+
+  .meta-item {
+    font-size: 0.88rem;
+
+    .meta-label {
+      color: #64748b;
+      margin-right: 6px;
+    }
+
+    .meta-val {
+      font-weight: 700;
+      color: #1e293b;
+    }
+  }
+}
+
+/* =========================================================
+   HU-06: MODAL DE EDICIÓN CON SLIDERS ION-RANGE
+   ========================================================= */
+.edit-pokemon-modal {
+  --border-radius: 24px;
+
+  .edit-modal-wrapper {
+    background: #ffffff;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .edit-modal-toolbar {
+    --background: #ffffff;
+    --color: #0f172a;
+    border-bottom: 1px solid #e2e8f0;
+
+    .edit-title-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 8px;
+
+      .edit-icon {
+        font-size: 1.3rem;
+        color: #dc2626;
+      }
+
+      ion-title {
+        font-weight: 800;
+        font-size: 1.15rem;
+        text-transform: capitalize;
+      }
+    }
+  }
+
+  .edit-modal-content {
+    --background: #f8fafc;
+  }
+
+  .edit-form-body {
+    padding: 18px 16px;
+    max-width: 580px;
+    margin: 0 auto;
+
+    .form-group-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+
+      .group-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+
+      .group-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 12px 0;
+      }
+
+      .group-subtitle {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin: 0 0 16px 0;
+      }
+
+      .total-live-badge {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+
+        strong {
+          font-weight: 800;
+        }
+      }
+
+      .input-field {
+        margin-bottom: 12px;
+
+        label {
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #475569;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+        }
+
+        .styled-input {
+          width: 100%;
+          padding: 10px 14px;
+          border-radius: 12px;
+          border: 1.5px solid #cbd5e1;
+          font-size: 0.95rem;
+          color: #0f172a;
+          background: #f8fafc;
+          outline: none;
+          transition: border-color 0.2s, background 0.2s;
+
+          &:focus {
+            border-color: #dc2626;
+            background: #ffffff;
+          }
+        }
+      }
+
+      .input-row-2 {
+        display: flex;
+        gap: 12px;
+
+        .input-field {
+          flex: 1;
+        }
+      }
+
+      /* Sliders de Estadísticas */
+      .stat-slider-item {
+        margin-bottom: 14px;
+
+        .slider-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2px;
+
+          .stat-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            .stat-dot {
+              width: 7px;
+              height: 7px;
+              border-radius: 50%;
+              display: inline-block;
+
+              &.dot-hp  { background-color: #10b981; }
+              &.dot-atk { background-color: #ef4444; }
+              &.dot-def { background-color: #f59e0b; }
+              &.dot-spa { background-color: #8b5cf6; }
+              &.dot-spd { background-color: #06b6d4; }
+              &.dot-spe { background-color: #ec4899; }
+            }
+          }
+
+          .stat-value-badge {
+            font-size: 0.82rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 8px;
+            color: #ffffff;
+
+            &.hp-badge  { background-color: #10b981; }
+            &.atk-badge { background-color: #ef4444; }
+            &.def-badge { background-color: #f59e0b; }
+            &.spa-badge { background-color: #8b5cf6; }
+            &.spd-badge { background-color: #06b6d4; }
+            &.spe-badge { background-color: #ec4899; }
+          }
+        }
+
+        .custom-range {
+          padding-top: 4px;
+          padding-bottom: 4px;
+
+          &.range-hp  { --bar-background-active: #10b981; --knob-background: #10b981; --pin-background: #10b981; }
+          &.range-atk { --bar-background-active: #ef4444; --knob-background: #ef4444; --pin-background: #ef4444; }
+          &.range-def { --bar-background-active: #f59e0b; --knob-background: #f59e0b; --pin-background: #f59e0b; }
+          &.range-spa { --bar-background-active: #8b5cf6; --knob-background: #8b5cf6; --pin-background: #8b5cf6; }
+          &.range-spd { --bar-background-active: #06b6d4; --knob-background: #06b6d4; --pin-background: #06b6d4; }
+          &.range-spe { --bar-background-active: #ec4899; --knob-background: #ec4899; --pin-background: #ec4899; }
+        }
+      }
+    }
+
+    .modal-save-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+
+      ion-button {
+        font-weight: 700;
+      }
+    }
+  }
+}

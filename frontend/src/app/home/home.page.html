@@ -1,0 +1,685 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar class="main-toolbar">
+    <div slot="start" class="header-brand">
+      <div class="pokeball-icon"></div>
+      <span class="brand-title">Pokédex</span>
+    </div>
+
+    <ion-buttons slot="end" class="header-actions">
+      @if (totalPokemons() > 0) {
+      <div class="counter-badge" title="Pokémon registrados en tu Pokédex">
+        <span class="badge-dot"></span>
+        <span class="badge-text-full">{{ pokemons().length }} / {{ totalPokemons() }}</span>
+        <span class="badge-text-compact">{{ pokemons().length }}</span>
+      </div>
+      }
+      <button type="button" class="header-action-btn header-scan-btn" (click)="openCameraScanner()" title="Escanear Pokémon con Cámara AR">
+        <ion-icon name="camera-outline"></ion-icon>
+        <span class="btn-text">Escanear AR</span>
+      </button>
+      <button type="button" class="header-action-btn header-import-btn" (click)="openImportModal()" title="Importar Pokémon desde PokéAPI">
+        <ion-icon name="cloud-upload-outline"></ion-icon>
+        <span class="btn-text">Importar</span>
+      </button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="pokedex-content">
+  <!-- Pull to Refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="refresh-outline" pullingText="Desliza para actualizar"
+      refreshingSpinner="circles">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <div class="content-wrapper">
+    <!-- Subheader Hero -->
+    <div class="hero-section">
+      <div class="hero-text">
+        <h1>Centro de Entrenamiento Pokédex</h1>
+        <p>Explora, busca por nombre o ID, escanea con cámara en tiempo real e importa Pokémon desde PokéAPI.
+        </p>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         HU-04: BARRA DE BÚSQUEDA Y FILTROS POR TIPO DE POKÉMON
+         ========================================================= -->
+    <div class="search-filter-section">
+      <!-- Search Input with Camera Action -->
+      <div class="search-box-row">
+        <div class="search-input-col">
+          <ion-searchbar [value]="searchQuery()" (ionInput)="onSearchInput($event)"
+            placeholder="Buscar por nombre o número (ej: Pikachu, 25, #001)..." [debounce]="300"
+            show-clear-button="always" class="custom-searchbar">
+          </ion-searchbar>
+        </div>
+        <button type="button" class="camera-search-btn" (click)="openCameraScanner()" title="Buscar por Cámara / Reconocimiento Visual">
+          <ion-icon name="camera-outline"></ion-icon>
+          <span class="btn-label">Cámara</span>
+        </button>
+      </div>
+
+      <!-- Type Filter Horizontal Chips -->
+      <div class="types-filter-bar">
+        <span class="filter-label">
+          <ion-icon name="filter-outline"></ion-icon> Filtrar por Tipo:
+        </span>
+        <div class="chips-scroll">
+          @for (item of typeFilters; track item.key) {
+          <button type="button" class="type-chip" [class.active]="selectedType() === item.key"
+            [ngClass]="item.key !== 'all' ? getTypeClass(item.key) : 'type-all'" (click)="selectTypeFilter(item.key)">
+            @if (item.key !== 'all') {
+            <span class="dot" [ngClass]="'type-dot-' + item.key"></span>
+            }
+            <span class="chip-name">{{ item.label }}</span>
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- Active Filter Summary Banner -->
+      @if (isSearchActive()) {
+      <div class="active-filter-banner">
+        <div class="filter-summary">
+          <ion-icon name="search-outline"></ion-icon>
+          <span>
+            Resultados para:
+            @if (searchQuery()) { <strong>"{{ searchQuery() }}"</strong> }
+            @if (searchQuery() && selectedType() !== 'all') { + }
+            @if (selectedType() !== 'all') { Tipo <strong>{{ selectedType() }}</strong> }
+            ({{ searchResultCount() }} encontrados)
+          </span>
+        </div>
+        <button class="clear-filter-btn" (click)="clearFilters()">
+          <ion-icon name="close-circle-outline"></ion-icon> Limpiar Filtros
+        </button>
+      </div>
+      }
+    </div>
+
+    <!-- Error State -->
+    @if (hasError()) {
+    <div class="error-container">
+      <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
+      <h3>Error de conexión</h3>
+      <p>{{ errorMessage() }}</p>
+      <ion-button (click)="loadPokemons(null, true)" fill="solid" color="primary" shape="round">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        Reintentar
+      </ion-button>
+    </div>
+    }
+
+    <!-- Loading Skeleton Grid -->
+    @if (isLoading()) {
+    <ion-grid class="pokemon-grid">
+      <ion-row>
+        @for (item of skeletonItems; track $index) {
+        <ion-col size="12" sizeSm="6" sizeMd="4" sizeLg="4">
+          <ion-card class="pokemon-card skeleton-card">
+            <div class="sprite-header">
+              <ion-skeleton-text [animated]="true"
+                style="width: 120px; height: 120px; border-radius: 50%; margin: 10px auto;"></ion-skeleton-text>
+            </div>
+            <div class="card-body">
+              <ion-skeleton-text [animated]="true" style="width: 40%; height: 16px;"></ion-skeleton-text>
+              <ion-skeleton-text [animated]="true" style="width: 70%; height: 26px; margin: 8px 0;"></ion-skeleton-text>
+              <div class="skeleton-row" style="display: flex; gap: 8px; margin: 10px 0;">
+                <ion-skeleton-text [animated]="true"
+                  style="width: 60px; height: 22px; border-radius: 12px;"></ion-skeleton-text>
+                <ion-skeleton-text [animated]="true"
+                  style="width: 60px; height: 22px; border-radius: 12px;"></ion-skeleton-text>
+              </div>
+              <ion-skeleton-text [animated]="true"
+                style="width: 100%; height: 60px; border-radius: 10px; margin-top: 10px;"></ion-skeleton-text>
+            </div>
+          </ion-card>
+        </ion-col>
+        }
+      </ion-row>
+    </ion-grid>
+    }
+
+    <!-- Empty Search Results State -->
+    @if (!isLoading() && isSearchActive() && pokemons().length === 0) {
+    <div class="empty-state-container">
+      <div class="empty-icon-wrapper">
+        <ion-icon name="search-outline"></ion-icon>
+      </div>
+      <h3>No se encontraron Pokémon</h3>
+      <p>No hay Pokémon que coincidan con tu búsqueda actual o filtro de tipo.</p>
+      <div class="empty-actions">
+        <ion-button (click)="clearFilters()" fill="solid" color="primary" shape="round">
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          Restablecer Filtros
+        </ion-button>
+        <ion-button (click)="openImportModal()" fill="outline" color="dark" shape="round">
+          <ion-icon name="cloud-upload-outline" slot="start"></ion-icon>
+          Importar desde PokéAPI
+        </ion-button>
+      </div>
+    </div>
+    }
+
+    <!-- Pokemon List Grid -->
+    @if (!isLoading() && pokemons().length > 0) {
+    <ion-grid class="pokemon-grid">
+      <ion-row>
+        @for (pokemon of pokemons(); track pokemon.pokedexId || pokemon.id) {
+        <ion-col size="12" sizeSm="6" sizeMd="4" sizeLg="4">
+          <ion-card class="pokemon-card" (click)="goToDetail(pokemon)">
+
+            <!-- Top Badge Bar with ID, Types and Delete Button -->
+            <div class="card-header-bar" [ngClass]="getTypeClass(pokemon.types[0] || 'normal')">
+              <span class="pokedex-id-tag">{{ formatPokedexId(pokemon.pokedexId) }}</span>
+              <div class="types-header-pills">
+                @for (type of pokemon.types; track type) {
+                <span class="header-type-pill">
+                  {{ type }}
+                </span>
+                }
+              </div>
+              <!-- HU-07: Delete Action Button -->
+              <button class="card-delete-btn" (click)="confirmDelete(pokemon, $event)" title="Eliminar Pokémon">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+
+            <!-- Sprite Showcase with High-Res Image -->
+            <div class="sprite-showcase">
+              <div class="glow-disc"></div>
+              <img [src]="pokemon.sprite" [alt]="pokemon.name" class="pokemon-img"
+                (error)="onImageError($event, pokemon.pokedexId)" loading="lazy" />
+            </div>
+
+            <!-- Pokemon Information Body -->
+            <div class="card-body">
+              <div class="title-row">
+                <h2 class="pokemon-title">{{ pokemon.name }}</h2>
+              </div>
+
+              <!-- Quick Physical Stats (Height & Weight) -->
+              <div class="stats-mini-bar">
+                <div class="stat-pill">
+                  <ion-icon name="resize-outline" class="stat-icon"></ion-icon>
+                  <span class="stat-text"><strong>{{ pokemon.height }}</strong> m</span>
+                </div>
+                <div class="stat-pill">
+                  <ion-icon name="barbell-outline" class="stat-icon"></ion-icon>
+                  <span class="stat-text"><strong>{{ pokemon.weight }}</strong> kg</span>
+                </div>
+              </div>
+
+              <!-- Requerimiento 1: Mini Estadísticas Base de Combate -->
+              <div class="combat-stats-preview">
+                <div class="mini-stat-item">
+                  <div class="mini-stat-header">
+                    <span class="mini-stat-name">HP</span>
+                    <span class="mini-stat-val">{{ pokemon.hp || 0 }}</span>
+                  </div>
+                  <div class="mini-stat-bar-track">
+                    <div class="mini-stat-bar-fill bar-hp" [style.width.%]="getStatPercent(pokemon.hp)"></div>
+                  </div>
+                </div>
+
+                <div class="mini-stat-item">
+                  <div class="mini-stat-header">
+                    <span class="mini-stat-name">ATK</span>
+                    <span class="mini-stat-val">{{ pokemon.attack || 0 }}</span>
+                  </div>
+                  <div class="mini-stat-bar-track">
+                    <div class="mini-stat-bar-fill bar-atk" [style.width.%]="getStatPercent(pokemon.attack)"></div>
+                  </div>
+                </div>
+
+                <div class="mini-stat-item">
+                  <div class="mini-stat-header">
+                    <span class="mini-stat-name">DEF</span>
+                    <span class="mini-stat-val">{{ pokemon.defense || 0 }}</span>
+                  </div>
+                  <div class="mini-stat-bar-track">
+                    <div class="mini-stat-bar-fill bar-def" [style.width.%]="getStatPercent(pokemon.defense)"></div>
+                  </div>
+                </div>
+
+                <div class="mini-stat-item">
+                  <div class="mini-stat-header">
+                    <span class="mini-stat-name">SPD</span>
+                    <span class="mini-stat-val">{{ pokemon.speed || 0 }}</span>
+                  </div>
+                  <div class="mini-stat-bar-track">
+                    <div class="mini-stat-bar-fill bar-spe" [style.width.%]="getStatPercent(pokemon.speed)"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Abilities Badges -->
+              <div class="abilities-preview">
+                <span class="ability-label">Habilidades:</span>
+                <div class="ability-tags">
+                  @for (ability of pokemon.abilities; track ability) {
+                  <span class="ability-tag">
+                    <ion-icon name="flash-outline"></ion-icon>
+                    {{ ability }}
+                  </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Action button indicator -->
+              <div class="card-action-footer">
+                <span class="action-text">Ver Ficha y Estadísticas</span>
+                <ion-icon name="chevron-forward-outline" class="action-icon"></ion-icon>
+              </div>
+            </div>
+
+          </ion-card>
+        </ion-col>
+        }
+      </ion-row>
+    </ion-grid>
+    }
+
+    <!-- Infinite Scroll (Only active during general pagination) -->
+    @if (!isSearchActive()) {
+    <ion-infinite-scroll (ionInfinite)="onIonInfinite($event)" [disabled]="currentPage() >= totalPages()">
+      <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Cargando más Pokémon...">
+      </ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+    }
+  </div>
+
+  <!-- =========================================================
+       HU-05: BOTÓN FLOTANTE (FAB) PARA IMPORTAR POKÉMON
+       ========================================================= -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="custom-fab">
+    <ion-fab-button (click)="openImportModal()" color="danger" aria-label="Importar Pokémon">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- =========================================================
+       HU-05: MODAL DE IMPORTACIÓN CON LIVE PREVIEW DESDE POKÉAPI
+       ========================================================= -->
+  <ion-modal [isOpen]="isImportModalOpen()" (didDismiss)="closeImportModal()" class="import-pokemon-modal">
+    <ng-template>
+      <div class="modal-wrapper">
+        <ion-header class="ion-no-border">
+          <ion-toolbar class="modal-toolbar">
+            <div class="modal-title-box">
+              <ion-icon name="cloud-upload-outline" class="title-icon"></ion-icon>
+              <ion-title>Importar desde PokéAPI</ion-title>
+            </div>
+            <ion-buttons slot="end">
+              <ion-button (click)="closeImportModal()" fill="clear" color="medium">
+                <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="modal-content-area">
+          <div class="import-form-container">
+            <p class="import-description">
+              Ingresa el nombre o número de Pokédex de cualquier generación oficial para consultar la PokéAPI e
+              importarlo con sus estadísticas de combate a tu base de datos local.
+            </p>
+
+            <!-- Search input with preview action -->
+            <div class="input-action-row">
+              <div class="text-input-wrapper">
+                <input type="text" [(ngModel)]="importInput" placeholder="Ej: Mewtwo, 150, Lucario, Rayquaza, Togepi..."
+                  (keyup.enter)="fetchPokeApiPreview()" class="custom-text-input" />
+              </div>
+              <button type="button" class="preview-btn" [disabled]="isImportSearching() || !importInput().trim()"
+                (click)="fetchPokeApiPreview()">
+                @if (isImportSearching()) {
+                <ion-spinner name="crescent"></ion-spinner>
+                } @else {
+                <ion-icon name="eye-outline"></ion-icon>
+                <span>Vista Previa</span>
+                }
+              </button>
+            </div>
+
+            <!-- Error Banner -->
+            @if (importError()) {
+            <div class="error-alert-banner">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ importError() }}</span>
+            </div>
+            }
+
+            <!-- Live Preview Card -->
+            @if (previewPokemon()) {
+            <div class="preview-card-container">
+              <div class="preview-card-header" [ngClass]="getTypeClass(previewPokemon()?.types?.[0] || 'normal')">
+                <div class="preview-badge-row">
+                  <span class="pokedex-num">#{{ previewPokemon()?.pokedexId }}</span>
+                  <span class="preview-tag">VISTA PREVIA DE POKÉAPI</span>
+                </div>
+                <div class="preview-sprite-box">
+                  <img [src]="previewPokemon()?.sprite" [alt]="previewPokemon()?.name" class="preview-img" />
+                </div>
+                <h3 class="preview-name">{{ previewPokemon()?.name }}</h3>
+                <div class="preview-types">
+                  @for (t of previewPokemon()?.types; track t) {
+                  <span class="preview-type-pill">{{ t }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="preview-card-body">
+                <!-- Physical Specs -->
+                <div class="specs-row">
+                  <div class="spec-item">
+                    <span class="spec-label">Altura</span>
+                    <span class="spec-val">{{ previewPokemon()?.height }} m</span>
+                  </div>
+                  <div class="spec-item">
+                    <span class="spec-label">Peso</span>
+                    <span class="spec-val">{{ previewPokemon()?.weight }} kg</span>
+                  </div>
+                </div>
+
+                <!-- 6 Base Combat Stats Preview -->
+                <h4 class="preview-stats-title">Estadísticas Base de Combate:</h4>
+                <div class="preview-stats-grid">
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">HP</span>
+                      <span class="p-val">{{ previewPokemon()?.hp }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-hp" [style.width.%]="getStatPercent(previewPokemon()?.hp)"></div>
+                    </div>
+                  </div>
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">Ataque</span>
+                      <span class="p-val">{{ previewPokemon()?.attack }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-atk" [style.width.%]="getStatPercent(previewPokemon()?.attack)"></div>
+                    </div>
+                  </div>
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">Defensa</span>
+                      <span class="p-val">{{ previewPokemon()?.defense }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-def" [style.width.%]="getStatPercent(previewPokemon()?.defense)"></div>
+                    </div>
+                  </div>
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">Atq. Esp</span>
+                      <span class="p-val">{{ previewPokemon()?.special_attack }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-spa" [style.width.%]="getStatPercent(previewPokemon()?.special_attack)">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">Def. Esp</span>
+                      <span class="p-val">{{ previewPokemon()?.special_defense }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-spd" [style.width.%]="getStatPercent(previewPokemon()?.special_defense)">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-stat">
+                    <div class="p-stat-info">
+                      <span class="p-name">Velocidad</span>
+                      <span class="p-val">{{ previewPokemon()?.speed }}</span>
+                    </div>
+                    <div class="p-bar">
+                      <div class="p-fill bar-spe" [style.width.%]="getStatPercent(previewPokemon()?.speed)"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Import Submit Button -->
+                <div class="preview-actions">
+                  <ion-button expand="block" color="success" shape="round" [disabled]="isImportSubmitting()"
+                    (click)="confirmImport()">
+                    @if (isImportSubmitting()) {
+                    <ion-spinner name="crescent" slot="start"></ion-spinner>
+                    Importando a SQLite...
+                    } @else {
+                    <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+                    Confirmar e Importar Pokémon
+                    }
+                  </ion-button>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+        </ion-content>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- =========================================================
+       RECONOCIMIENTO VISUAL / MODAL DE CÁMARA AR (3 POKÉMON)
+       ========================================================= -->
+  <ion-modal [isOpen]="isScannerModalOpen()" (didDismiss)="closeCameraScanner()" class="scanner-pokemon-modal">
+    <ng-template>
+      <div class="scanner-modal-wrapper">
+        <!-- Top Toolbar -->
+        <ion-header class="ion-no-border scanner-modal-header">
+          <ion-toolbar class="scanner-toolbar">
+            <div slot="start" class="scanner-title-box">
+              <ion-icon name="scan-outline" class="title-icon"></ion-icon>
+              <span class="scanner-title-text">Escáner Pokédex AR</span>
+            </div>
+            <ion-buttons slot="end" class="scanner-header-actions">
+              @if (isCameraActive()) {
+              <button type="button" class="scanner-icon-btn" (click)="toggleCameraFacing()" title="Cambiar cámara">
+                <ion-icon name="camera-reverse-outline"></ion-icon>
+              </button>
+              }
+              <button type="button" class="scanner-icon-btn scanner-close-btn" (click)="closeCameraScanner()" title="Cerrar escáner">
+                <ion-icon name="close-outline"></ion-icon>
+              </button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="scanner-content">
+          <div class="scanner-viewport-container">
+            <!-- Canvas oculto para procesar el frame -->
+            <canvas id="scannerCanvas" style="display: none;"></canvas>
+
+            <!-- Video en vivo de la cámara -->
+            <div class="camera-stream-wrapper">
+              <video id="scannerVideo" playsinline autoplay muted class="camera-video-feed"></video>
+
+              <!-- Capa de la Mira Holográfica Optimizada -->
+              <div class="viewfinder-overlay">
+                <div class="reticle-box" id="scannerReticle"
+                  [class.detected]="isConfirmed()"
+                  [class.analyzing]="matchProgress() > 0 && !isConfirmed()"
+                  [class.scanning]="isScanning()">
+                  <div class="corner corner-tl"></div>
+                  <div class="corner corner-tr"></div>
+                  <div class="corner corner-bl"></div>
+                  <div class="corner corner-br"></div>
+                  <div class="laser-scanner-line" [class.active]="isScanning() || isCameraActive()"></div>
+                  <div class="crosshair-center"></div>
+
+                  @if (isConfirmed()) {
+                  <div class="match-pulse-ring"></div>
+                  <div class="reticle-status-badge badge-confirmed">
+                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                    <span>¡CONFIRMADO!</span>
+                  </div>
+                  } @else if (matchProgress() > 0) {
+                  <div class="reticle-status-badge badge-analyzing">
+                    <ion-spinner name="crescent"></ion-spinner>
+                    <span>Confirmando: {{ matchProgress() }}/{{ REQUIRED_CONFIRMATIONS }}</span>
+                  </div>
+                  } @else {
+                  <div class="reticle-status-badge badge-searching">
+                    <span class="searching-pulse-dot"></span>
+                    <span>No detectado</span>
+                  </div>
+                  }
+                </div>
+
+                <div class="reticle-instruction"
+                  [class.instruction-confirmed]="isConfirmed()"
+                  [class.instruction-analyzing]="matchProgress() > 0 && !isConfirmed()">
+                  @if (isConfirmed()) {
+                  <ion-icon name="checkmark-done-outline"></ion-icon>
+                  <span>¡<strong>{{ scannerResult()?.pokemon?.displayName }}</strong> confirmado con éxito!</span>
+                  } @else if (matchProgress() > 0) {
+                  <ion-icon name="refresh-outline"></ion-icon>
+                  <span>Estabilizando enfoque: <strong>{{ matchProgress() }}/{{ REQUIRED_CONFIRMATIONS }}</strong>...</span>
+                  } @else {
+                  <ion-icon name="scan-outline"></ion-icon>
+                  <span>{{ currentStatusText() }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Aviso si no hay acceso a cámara -->
+            @if (scannerError()) {
+            <div class="camera-error-banner">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <div class="error-text">
+                <p>{{ scannerError() }}</p>
+                <ion-button size="small" fill="outline" color="light" (click)="startCamera()">
+                  <ion-icon name="refresh-outline" slot="start"></ion-icon> Reintentar Cámara
+                </ion-button>
+              </div>
+            </div>
+            }
+
+            <!-- Tarjeta de Resultado de Detección (Únicamente cuando se confirma tras 5 frames >= 85%) -->
+            @if (isConfirmed() && scannerResult()?.pokemon) {
+            <div class="detection-result-card" [ngClass]="'theme-' + scannerResult()?.pokemon?.name">
+              <div class="detection-badge">
+                <ion-icon name="checkmark-done-outline"></ion-icon>
+                <span>¡{{ scannerResult()?.pokemon?.displayName }} Detectado! ({{ scannerResult()?.confidence }}% de coincidencia)</span>
+              </div>
+
+              <div class="detection-body">
+                <div class="detection-sprite-box">
+                  <img [src]="scannedPokemonDetail()?.sprite || scannerResult()?.pokemon?.referenceAsset"
+                    [alt]="scannerResult()?.pokemon?.displayName" class="detection-sprite" />
+                </div>
+
+                <div class="detection-info">
+                  <div class="detection-id-row">
+                    <span class="pokedex-id">#{{ formatPokedexId(scannerResult()!.pokemon!.pokedexId) }}</span>
+                    <span class="pokemon-name">{{ scannerResult()?.pokemon?.displayName }}</span>
+                  </div>
+
+                  <div class="detection-types">
+                    @for (t of (scannedPokemonDetail()?.types || scannerResult()?.pokemon?.types); track t) {
+                    <span class="type-pill" [ngClass]="getTypeClass(t)">{{ t }}</span>
+                    }
+                  </div>
+
+                  @if (scannedPokemonDetail()) {
+                  <div class="detection-stats-mini">
+                    <div class="stat-bubble">
+                      <span class="s-label">HP</span>
+                      <span class="s-val">{{ scannedPokemonDetail()?.hp }}</span>
+                    </div>
+                    <div class="stat-bubble">
+                      <span class="s-label">ATK</span>
+                      <span class="s-val">{{ scannedPokemonDetail()?.attack }}</span>
+                    </div>
+                    <div class="stat-bubble">
+                      <span class="s-label">DEF</span>
+                      <span class="s-val">{{ scannedPokemonDetail()?.defense }}</span>
+                    </div>
+                    <div class="stat-bubble">
+                      <span class="s-label">SPD</span>
+                      <span class="s-val">{{ scannedPokemonDetail()?.speed }}</span>
+                    </div>
+                  </div>
+                  }
+                </div>
+              </div>
+
+              <div class="detection-actions">
+                <ion-button expand="block" color="success" shape="round" class="view-detail-btn"
+                  (click)="goToScannedPokemonDetail()">
+                  <ion-icon name="eye-outline" slot="start"></ion-icon>
+                  Ver Ficha y Estadísticas Completas
+                </ion-button>
+                <button type="button" class="scan-again-btn" (click)="resetScan()">
+                  <ion-icon name="refresh-outline"></ion-icon>
+                  <span>Escanear de Nuevo</span>
+                </button>
+              </div>
+            </div>
+            }
+
+            @if (!isConfirmed() && scannerResult() && !scannerResult()?.detected) {
+            <div class="no-match-banner">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ scannerResult()?.message }}</span>
+            </div>
+            }
+
+            <!-- Botones y Controles del Escáner -->
+            <div class="scanner-controls-footer">
+              <!-- Botón de Captura / Re-escaneo -->
+              <div class="shutter-row">
+                <button type="button" class="scan-shutter-btn" [class.shutter-confirmed]="isConfirmed()" [disabled]="isScanning()" (click)="onShutterClick()">
+                  @if (isScanning()) {
+                  <ion-spinner name="crescent" color="light"></ion-spinner>
+                  } @else {
+                  <div class="shutter-inner">
+                    <ion-icon [name]="isConfirmed() ? 'refresh-outline' : 'scan-outline'"></ion-icon>
+                  </div>
+                  }
+                  <span class="shutter-text">{{ isConfirmed() ? 'Escanear de Nuevo' : 'Escanear Ahora' }}</span>
+                </button>
+              </div>
+
+              <!-- Guía Visual para Reconocimiento desde Celular -->
+              <div class="scanner-guide-card">
+                <div class="guide-header">
+                  <ion-icon name="sparkles-outline"></ion-icon>
+                  <span class="guide-title">Objetivos Soportados en Tiempo Real</span>
+                </div>
+                <div class="supported-targets-chips">
+                  <div class="target-chip chip-pikachu">
+                    <span class="target-icon">⚡</span>
+                    <span class="target-name">Pikachu #025</span>
+                  </div>
+                  <div class="target-chip chip-charmander">
+                    <span class="target-icon">🔥</span>
+                    <span class="target-name">Charmander #004</span>
+                  </div>
+                  <div class="target-chip chip-bulbasaur">
+                    <span class="target-icon">🍃</span>
+                    <span class="target-name">Bulbasaur #001</span>
+                  </div>
+                </div>
+                <p class="guide-hint">
+                  Muestra la imagen oficial del Pokémon en la pantalla de tu celular con buen brillo y alinéala en el centro del marco.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </ion-content>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>
